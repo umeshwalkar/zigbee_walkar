@@ -90,14 +90,14 @@ struct _endpoints sample_endpoints = {
    //ZDO_ENDPOINT(zdo_ep_state),
 
    {
-         WPAN_ENDPOINT_ZDO,			// endpoint
-         WPAN_PROFILE_ZDO,			// profile ID
-         NULL, // endpoint handler
-         &zdo_ep_state,				// ep_state
-         0x0000,						// device ID
-         0x00,						// version
-         zdo_cluster_table						// clusters
-      },
+      WPAN_ENDPOINT_ZDO,			   // endpoint
+      WPAN_PROFILE_ZDO,			      // profile ID
+      NULL,                         // endpoint handler
+      &zdo_ep_state,				      // ep_state
+      0x0000,						      // device ID
+      0x00,						         // version
+      zdo_cluster_table					// clusters
+   },
 
    {  SAMPLE_ENDPOINT,              // endpoint
       0,                            // profile ID (filled in later)
@@ -144,7 +144,7 @@ char* format_time(char* dest, zcl_utctime_t utctime)
    return dest;
 }
 
-int walker_init(wpan_dev_t* dev, addr64* target,  uint16_t network_addr, uint16_t flags)
+int walker_init(wpan_dev_t* dev, addr64* target, uint16_t network_addr, uint16_t flags)
 {
    char addr64_buffer[ADDR64_STRING_LENGTH];
 
@@ -192,6 +192,12 @@ int walker_active_ep_resp(wpan_conversation_t FAR* conversation,
    {
       response = envelope->payload;
 
+   #ifdef WALKER_ENVELOPE_DEBUG
+      printf("\n%s: received %d-byte \n", __FUNCTION__, envelope->length);
+      //wpan_envelope_dump(envelope);
+      hex_dump(response, envelope->length, HEX_DUMP_FLAG_TAB);
+   #endif
+
       ep = response->endpoints;
       i = response->header.ep_count;
    #ifdef WALKER_DEBUG
@@ -201,9 +207,9 @@ int walker_active_ep_resp(wpan_conversation_t FAR* conversation,
 
       for (i = response->header.ep_count; i; ++ep, --i)
       {
-         tmp = *ep;
+         // tmp = *ep;
          WALKER_SET_EP(walker, *ep);
-         printf("WALKER_SET_EP %u : %u endpoint\n", tmp >> 3, *ep);
+         // printf("WALKER_SET_EP %u : %u endpoint\n", tmp >> 3, *ep);
       }
       walker.status = WALKER_SIMPLE_DESC_REQ;
    }
@@ -258,6 +264,12 @@ int walker_simple_desc_resp(wpan_conversation_t FAR* conversation,
    }
    else
    {
+   #ifdef WALKER_ENVELOPE_DEBUG
+      printf("\n%s: received %d-byte \n", __FUNCTION__, envelope->length);
+      //wpan_envelope_dump(envelope);
+      hex_dump(envelope->payload, envelope->length, HEX_DUMP_FLAG_TAB);
+   #endif
+
       response = envelope->payload;
 
       walker.profile_id = le16toh(response->descriptor.profile_id_le);
@@ -341,6 +353,12 @@ enum walker_status_t walker_send_simple_desc_req(void)
          if (zdo_simple_desc_request(&envelope, walker.target.network,
             walker.current_endpoint, walker_simple_desc_resp, NULL) == 0)
          {
+         #ifdef WALKER_ENVELOPE_DEBUG
+            //packet is cleared in "zdo_simple_desc_request"
+            // printf("%s: sending %d-byte request\n", __FUNCTION__, envelope.length);
+            // wpan_envelope_dump(&envelope);
+            // hex_dump(response, envelope->length, HEX_DUMP_FLAG_TAB);
+         #endif
             return WALKER_WAIT;
          }
 
@@ -371,6 +389,12 @@ int walker_process_discover_attr_resp(wpan_conversation_t FAR* conversation,
       const zcl_discover_attrib_resp_t    FAR* resp;
       const uint8_t                       FAR* end;
       const zcl_rec_attrib_report_t       FAR* attr;
+
+   #ifdef WALKER_ENVELOPE_DEBUG
+      printf("\n%s: received %d-byte \n", __FUNCTION__, envelope->length);
+      // wpan_envelope_dump(envelope);
+      hex_dump(envelope->payload, envelope->length, HEX_DUMP_FLAG_TAB);
+   #endif
 
       if (zcl.command == ZCL_CMD_DISCOVER_ATTRIB_RESP)
       {
@@ -511,6 +535,12 @@ enum walker_status_t walker_send_discover_attr_req(void)
    }
    zcl.req.max_return_count = 20;
 
+#ifdef WALKER_ENVELOPE_DEBUG
+   printf("\n%s: sending %d-byte request\n", __FUNCTION__, envelope.length);
+   // wpan_envelope_dump(&envelope);
+   hex_dump(envelope.payload, envelope.length, HEX_DUMP_FLAG_TAB);
+#endif
+
    if (wpan_envelope_send(&envelope) != 0)
    {
       return walker.status;
@@ -542,6 +572,12 @@ int walker_process_read_attr_resp(wpan_conversation_t FAR* conversation,
    else if (zcl_command_build(&zcl, envelope, NULL) == 0)
    {
       resp = zcl.zcl_payload;
+
+   #ifdef WALKER_ENVELOPE_DEBUG
+      printf("%s: received %d-byte \n", __FUNCTION__, envelope->length);
+      // wpan_envelope_dump(envelope);
+      hex_dump(envelope->payload, envelope->length, HEX_DUMP_FLAG_TAB);
+   #endif
 
       // make sure the response is for the correct ID
       if (resp->id_le != attr->id_le)
@@ -598,6 +634,12 @@ int walker_send_read_attr(zcl_rec_attrib_report_t* attr)
 
    zcl.header.sequence = (uint8_t)trans;
    zcl.attr_id_le = attr->id_le;
+
+#ifdef WALKER_ENVELOPE_DEBUG
+   printf("%s: sending %d-byte request\n", __FUNCTION__, envelope.length);
+   // wpan_envelope_dump(&envelope);
+   hex_dump(envelope.payload, envelope.length, HEX_DUMP_FLAG_TAB);
+#endif
 
    retval = wpan_envelope_send(&envelope);
 
@@ -705,6 +747,13 @@ enum walker_status_t walker_tick(void)
          walker.target.network, walker_active_ep_resp, NULL) == 0)
       {
          walker.status = WALKER_WAIT;
+
+      #ifdef WALKER_ENVELOPE_DEBUG
+         // payload cleared in "zdo_send_descriptor_req"
+         // printf("WALKER_ACTIVE_EP_REQ: sending %d-byte request\n", envelope.length);
+         // wpan_envelope_dump(&envelope);
+         // hex_dump(envelope.payload, envelope.length, HEX_DUMP_FLAG_TAB);
+      #endif
       }
       break;
 

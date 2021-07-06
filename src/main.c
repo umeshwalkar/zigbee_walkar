@@ -120,9 +120,9 @@ int zdo_device_announce_handler(const wpan_envelope_t FAR* envelope, void FAR* c
 
    annce = (zdo_device_annce_t*)envelope->payload;
    memcpy_letobe(&target[0], &annce->ieee_address_le, 8);
-   printf("Device Announce %" PRIsFAR " (0x%04x) cap 0x%02x\n",
-      addr64_format(buffer, &target[0]), le16toh(annce->network_addr_le),
-      annce->capability);
+   // printf("Device Announce %" PRIsFAR " (0x%04x) cap 0x%02x\n",
+   //    addr64_format(buffer, &target[0]), le16toh(annce->network_addr_le),
+   //    annce->capability);
 
 
    sample_endpoints.zdo.cluster_table = NULL;
@@ -175,7 +175,7 @@ int main(int argc, char* argv[])
 
    if (status == 0)
    {
-      printf("waiting to device announce.\ntype \"QUIT\" to return\n");
+      printf("waiting to device announce.\ntype \"QUIT\" or Enter \"CNTL+C\" to return\n");
 
       //wait till the device is not announce.
       int linelen;

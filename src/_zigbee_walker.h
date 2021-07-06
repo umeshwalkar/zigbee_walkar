@@ -28,6 +28,7 @@
 #define WALKER_VER         0x0103
 #define WALKER_VER_STR     "1.03"
 // #define WALKER_DEBUG
+// #define WALKER_ENVELOPE_DEBUG
 
 #include <time.h>
 #include "xbee/platform.h"
